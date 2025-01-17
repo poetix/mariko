@@ -57,8 +57,22 @@ public class RecordInterpretationTest {
                 interpret(IndirectSentence.class, "Arthur Putey said, \"the dog sat on the couch\""));
     }
 
-    @FromPattern("\\((-?\\d+),(-?\\d+)\\)")
+    @FromPattern("\\((-?\\d+),\\s?(-?\\d+)\\)")
     public record Point(long x, long y) { }
+
+    @Test
+    public void populateRecordFromString() {
+        assertEquals(new Point(23, -6), interpret(Point.class, "(23, -6)"));
+    }
+
+    @FromPattern("Item #(\\d+) is at position (.*)")
+    public record ItemPosition(int itemId, Point position) { }
+
+    @Test
+    public void populateNestedDataClassFromSubstring() {
+        assertEquals(new ItemPosition(123, new Point(-15, 7)),
+                interpret(ItemPosition.class, "Item #123 is at position (-15, 7)"));
+    }
 
     @FromPattern("From (.*) to (.*)")
     public record Line(
