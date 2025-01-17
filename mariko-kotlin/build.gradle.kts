@@ -1,6 +1,5 @@
 plugins {
-    java
-    checkstyle
+    kotlin("jvm") version "1.9.23"
 }
 
 group = "com.codepoetics"
@@ -11,8 +10,14 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":mariko-core"))
+    testImplementation(kotlin("test"))
 }
 
 tasks.test {
     useJUnitPlatform()
+}
+
+kotlin {
+    jvmToolchain(17)
 }
