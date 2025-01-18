@@ -77,6 +77,13 @@ interface Opcode {
     data class Cpy(val lhs: Operand, val rhs: Char) : Opcode
     data class Jnz(val register: Char, val offset: Int) : Opcode
 }
+
+@Test
+fun `can interpret non-sealed interface with builder methods in companion`() {
+    assertEquals(Opcode.Cpy(Operand.Register('a'), 'b'), "cpy a b".interpret<Opcode>())
+    assertEquals(Opcode.Cpy(Operand.Literal(12), 'b'), "cpy 12 b".interpret<Opcode>())
+    assertEquals(Opcode.Jnz('c', -2), "jnz c -2".interpret<Opcode>())
+}
 ```
 
 In Java, this looks like:
