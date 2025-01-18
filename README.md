@@ -1,5 +1,7 @@
 # Mariko
 
+> Now the Anjin has _two_ problems.
+
 Often when completing Advent of Code puzzles in Java or Kotlin I've found myself hand-rolling code to parse a string with a regular expression, pull values out of subgroups of the regex match, convert those values into other types and populate a record or data class of some kind with them.
 
 Because I am very lazy, but also very industrious, I have made Mariko to make this easier to do. Perhaps it will be useful for other purposes as well.
