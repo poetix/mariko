@@ -1,5 +1,6 @@
 package com.codepoetics.mariko.reflection;
 
+import com.codepoetics.mariko.api.FromList;
 import com.codepoetics.mariko.api.InterpretationException;
 import com.codepoetics.mariko.api.InterpreterBuildingException;
 import com.codepoetics.mariko.api.FromPattern;
@@ -68,7 +69,7 @@ public record InstanceBuilderInfo<T>(Pattern pattern, List<ParameterInfo> parame
                                     .formatted(targetClass, input)));
         };
 
-        List<ParameterInfo> parameters = List.of(new ParameterInfo("value", String.class, String.class, null));
+        List<ParameterInfo> parameters = List.of(new ParameterInfo.ScalarParameter("value", String.class, null));
 
         return List.of(new InstanceBuilderInfo<>(classLevelPattern, parameters, instantiator));
     }
@@ -108,19 +109,38 @@ public record InstanceBuilderInfo<T>(Pattern pattern, List<ParameterInfo> parame
 
     private static @NotNull List<ParameterInfo> getParameters(@NotNull Executable executable) {
         return Arrays.stream(executable.getParameters())
-                .map(parameter -> new ParameterInfo(
-                        parameter.getName(),
-                        parameter.getType(),
-                        parameter.getParameterizedType(),
-                        parameter.isAnnotationPresent(FromPattern.class)
-                            ? parameter.getAnnotation(FromPattern.class).value()
-                            : null
-                        )
-                )
+                .map(InstanceBuilderInfo::interpretParameter)
                 .toList();
     }
 
-    @SuppressWarnings("unchecked")
+    private static @NotNull ParameterInfo interpretParameter(@NotNull Parameter parameter) {
+        if (parameter.getType().equals(List.class)) return interpretListParameter(parameter);
+        return new ParameterInfo.ScalarParameter(
+                parameter.getName(),
+                parameter.getType(),
+                parameter.isAnnotationPresent(FromPattern.class)
+                        ? parameter.getAnnotation(FromPattern.class).value()
+                        : null
+        );
+    }
+
+    private static @NotNull ParameterInfo interpretListParameter(@NotNull Parameter parameter) {
+        var listType = (ParameterizedType) parameter.getParameterizedType();
+        var itemClass = (Class<?>) listType.getActualTypeArguments()[0];
+        var separator = parameter.isAnnotationPresent(FromList.class)
+                ? parameter.getAnnotation(FromList.class).value()
+                : ",\\s+";
+
+        return new ParameterInfo.CollectionParameter(
+                parameter.getName(),
+                itemClass,
+                separator,
+                ArrayList.class,
+                parameter.isAnnotationPresent(FromPattern.class)
+                        ? parameter.getAnnotation(FromPattern.class).value()
+                        : null);
+    }
+
     private static <T> void addStaticBuilders(@NotNull Class<T> targetClass, List<InstanceBuilderInfo<T>> result) {
         Arrays.stream(targetClass.getDeclaredMethods())
                 .filter(method -> isStaticBuilder(targetClass, method))
@@ -146,7 +166,7 @@ public record InstanceBuilderInfo<T>(Pattern pattern, List<ParameterInfo> parame
                 method.getReturnType().equals(targetClass);
     }
 
-    private static <T> InstanceBuilderInfo<T> makeCompanionMethodInstanceBuilder(Class<T> targetClass, Object companionObject, Method method) {
+    private static <T> InstanceBuilderInfo<T> makeCompanionMethodInstanceBuilder(Class<T> ignored, Object companionObject, Method method) {
         return new InstanceBuilderInfo<>(
                 getPattern(method),
                 getParameters(method),
@@ -166,7 +186,6 @@ public record InstanceBuilderInfo<T>(Pattern pattern, List<ParameterInfo> parame
         }
     }
 
-    @SuppressWarnings("unchecked")
     private static <T> @NotNull InstanceBuilderInfo<T> makeMethodInstanceBuilder(Method method) {
         return new InstanceBuilderInfo<>(
                 getPattern(method),

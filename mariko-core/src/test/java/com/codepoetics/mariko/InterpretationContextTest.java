@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class InterpretationContextTest {
 
-    @FromPattern("(.*) (.*)")
+    @FromPattern(value = "(.*) (.*)")
     public record UUIDPair(UUID first, UUID second) { }
 
     @Test

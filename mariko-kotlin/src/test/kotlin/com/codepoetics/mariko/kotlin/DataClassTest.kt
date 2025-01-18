@@ -6,7 +6,7 @@ import kotlin.test.assertEquals
 
 class DataClassTest {
 
-    @FromPattern("x=(-?\\d+),y=(-?\\d+)")
+    @FromPattern(value = "x=(-?\\d+),y=(-?\\d+)")
     data class Point(val x: Long, val y: Long)
 
     @Test
@@ -14,7 +14,7 @@ class DataClassTest {
         assertEquals(Point(-5L, 23L), "x=-5,y=23".interpret<Point>())
     }
 
-    @FromPattern("Item #(\\d+) is at position (.*)")
+    @FromPattern(value = "Item #(\\d+) is at position (.*)")
     data class ItemPosition(val id: Int, val position: Point)
 
     @Test

@@ -12,10 +12,10 @@ public class SealedInterfaceTest {
             PasswordOperation.Rotate,
             PasswordOperation.Substitute {
 
-        @FromPattern("Rotate the password left by (\\d) places")
+        @FromPattern(value = "Rotate the password left by (\\d) places")
         record Rotate(int places) implements PasswordOperation { }
 
-        @FromPattern("Substitute '([a-z])' for the character in position (\\d)")
+        @FromPattern(value = "Substitute '([a-z])' for the character in position (\\d)")
         record Substitute(char newCharacter, int position) implements PasswordOperation { }
     }
 

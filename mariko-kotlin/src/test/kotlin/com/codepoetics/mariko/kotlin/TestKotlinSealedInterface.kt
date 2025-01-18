@@ -7,13 +7,13 @@ import org.junit.jupiter.api.Test
 class TestKotlinSealedInterface {
 
     sealed interface Creature {
-        @FromPattern("(\\w+)\\s+(\\w+)")
+        @FromPattern(value = "(\\w+)\\s+(\\w+)")
         data class Person(val firstName: String, val lastName: String) : Creature
 
-        @FromPattern("(\\w+), owned by (.*)")
+        @FromPattern(value = "(\\w+), owned by (.*)")
         data class Dog(val name: String, val owner: Person): Creature {
             companion object {
-                @FromPattern("(\\w+\\s+\\w+)'s dog, (\\w+)")
+                @FromPattern(value = "(\\w+\\s+\\w+)'s dog, (\\w+)")
                 fun alternative(owner: Person, name: String): Dog = Dog(name, owner)
             }
         }

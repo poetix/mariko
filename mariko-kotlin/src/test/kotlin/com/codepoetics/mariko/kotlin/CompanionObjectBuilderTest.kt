@@ -7,19 +7,19 @@ import org.junit.jupiter.api.Test
 class CompanionObjectBuilderTest {
 
     sealed interface Operand {
-        @FromPattern("[a-z]")
+        @FromPattern(value = "[a-z]")
         data class Register(val name: Char) : Operand
 
-        @FromPattern("-?\\d+")
+        @FromPattern(value = "-?\\d+")
         data class Literal(val value: Int): Operand
     }
 
     interface Opcode {
         companion object {
-            @FromPattern("cpy (.*) ([a-z])")
+            @FromPattern(value = "cpy (.*) ([a-z])")
             fun cpy(lhs: Operand, rhs: Char): Opcode = Cpy(lhs, rhs)
 
-            @FromPattern("jnz ([a-z]) (-?\\d+)")
+            @FromPattern(value = "jnz ([a-z]) (-?\\d+)")
             fun jnz(register: Char, offset: Int): Opcode = Jnz(register, offset)
         }
 

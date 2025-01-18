@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class RecordInterpretationTest {
 
-    @FromPattern("The (\\w+) sat on the (\\w+)")
+    @FromPattern(value = "The (\\w+) sat on the (\\w+)")
     public record Sentence(String animal, String furniture) { }
 
     enum Animal {
@@ -19,7 +19,7 @@ public class RecordInterpretationTest {
         GOLDFISH;
     }
 
-    @FromPattern("[t|T]he (\\w+) sat on the (\\w+)")
+    @FromPattern(value = "[t|T]he (\\w+) sat on the (\\w+)")
     public record SentenceWithEnum(Animal animal, String furniture) { }
 
     @Test
@@ -43,10 +43,10 @@ public class RecordInterpretationTest {
                 interpret(SentenceWithEnum.class, "The axolotl sat on the mat"));
     }
 
-    @FromPattern("(\\w+) (\\w+)")
+    @FromPattern(value = "(\\w+) (\\w+)")
     public record Person(String firstname, String lastname) { }
 
-    @FromPattern("(.*) said, \"(.*)\"")
+    @FromPattern(value = "(.*) said, \"(.*)\"")
     public record IndirectSentence(Person speaker, SentenceWithEnum sentence) { }
 
     @Test
@@ -57,7 +57,7 @@ public class RecordInterpretationTest {
                 interpret(IndirectSentence.class, "Arthur Putey said, \"the dog sat on the couch\""));
     }
 
-    @FromPattern("\\((-?\\d+),\\s?(-?\\d+)\\)")
+    @FromPattern(value = "\\((-?\\d+),\\s?(-?\\d+)\\)")
     public record Point(long x, long y) { }
 
     @Test
@@ -65,7 +65,7 @@ public class RecordInterpretationTest {
         assertEquals(new Point(23, -6), interpret(Point.class, "(23, -6)"));
     }
 
-    @FromPattern("Item #(\\d+) is at position (.*)")
+    @FromPattern(value = "Item #(\\d+) is at position (.*)")
     public record ItemPosition(int itemId, Point position) { }
 
     @Test
@@ -74,9 +74,9 @@ public class RecordInterpretationTest {
                 interpret(ItemPosition.class, "Item #123 is at position (-15, 7)"));
     }
 
-    @FromPattern("From (.*) to (.*)")
+    @FromPattern(value = "From (.*) to (.*)")
     public record Line(
-            @FromPattern("x=(-?\\d+), y=(-?\\d+)") Point from,
+            @FromPattern(value = "x=(-?\\d+), y=(-?\\d+)") Point from,
             Point to) { }
 
     @Test

@@ -1,5 +1,6 @@
 package com.codepoetics.mariko;
 
+import com.codepoetics.mariko.api.InterpretationException;
 import com.codepoetics.mariko.api.Interpreter;
 import com.codepoetics.mariko.api.InterpreterBuildingException;
 import com.codepoetics.mariko.reflection.InstanceBuilderInfo;
@@ -8,7 +9,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public final class InterpretationContext {
 
@@ -20,11 +26,6 @@ public final class InterpretationContext {
         interpreterCache.put(targetClass, interpreter);
 
         return this;
-    }
-
-    public <T> @NotNull Interpreter<T> makeInterpreter(@NotNull Class<T> targetClass, @NotNull Type targetType) {
-        if (targetType.equals(targetClass)) return makeInterpreter(targetClass);
-        throw new UnsupportedOperationException("We don't do generics yet");
     }
 
     public <T> @NotNull Interpreter<T> makeInterpreter(@NotNull Class<T> targetClass) {
@@ -68,18 +69,62 @@ public final class InterpretationContext {
         return new FirstMatchingInstanceBuilderInterpreter<>(builders);
     }
 
-    public <T> @NotNull Interpreter<T> makeInterpreter(@NotNull Class<T> targetClass, @NotNull Type targetType, @NotNull String pattern) {
-        if (targetType.equals(targetClass)) return makeInterpreter(targetClass, pattern);
-        throw new UnsupportedOperationException("We don't do generics yet");
+    public @NotNull Interpreter<?> makeParameterInterpreter(@NotNull ParameterInfo parameter) {
+        if (parameter instanceof ParameterInfo.ScalarParameter)
+            return makeScalarParameterInterpreter((ParameterInfo.ScalarParameter) parameter);
+
+        if (parameter instanceof ParameterInfo.CollectionParameter)
+            return makeCollectionParameterInterpreter((ParameterInfo.CollectionParameter) parameter);
+
+        throw new UnsupportedOperationException(
+                "Cannot make parameter interpreter for parameter %s"
+                        .formatted(parameter));
     }
 
-    public @NotNull Interpreter<?> makeParameterInterpreter(ParameterInfo parameter) {
+    private @NotNull Interpreter<?> makeScalarParameterInterpreter(@NotNull ParameterInfo.ScalarParameter parameter) {
+            return parameter.annotatedPattern() != null
+                    ? makeInterpreter(parameter.parameterClass(), parameter.annotatedPattern())
+                    : makeInterpreter(parameter.parameterClass());
+    }
+
+    private @NotNull Interpreter<?> makeCollectionParameterInterpreter(@NotNull ParameterInfo.CollectionParameter parameter) {
         return parameter.annotatedPattern() != null
-                ? makeInterpreter(
-                    parameter.parameterClass(),
-                    parameter.parameterType(),
-                    parameter.annotatedPattern()
-                )
-                : makeInterpreter(parameter.parameterClass(), parameter.parameterType());
+            ? interpreterCache.getOrPut(
+                parameter.collectionClass(),
+                parameter.itemClass(),
+                parameter.separator(),
+                parameter.annotatedPattern(),
+                () -> makeCollectionParameterInterpreterUncached(parameter))
+            : interpreterCache.getOrPut(
+                parameter.collectionClass(),
+                parameter.itemClass(),
+                parameter.separator(),
+                () -> makeCollectionParameterInterpreterUncached(parameter));
+    }
+
+    @SuppressWarnings("unchecked")
+    private @NotNull <T> Interpreter<Collection<T>> makeCollectionParameterInterpreterUncached(ParameterInfo.@NotNull CollectionParameter parameter) {
+        Interpreter<T> scalarParameterInterpreter = (Interpreter<T>) (parameter.annotatedPattern() != null
+                ? makeInterpreter(parameter.itemClass(), parameter.annotatedPattern())
+                : makeInterpreter(parameter.itemClass()));
+
+        var separatorRegex = Pattern.compile(parameter.separator());
+        Supplier<Collection<T>> targetSupplier = supplierOf((Class<Collection<T>>) parameter.collectionClass());
+        return (input) ->
+                Optional.of(separatorRegex.splitAsStream(input)
+                        .map(scalarParameterInterpreter::interpret)
+                        .collect(Collectors.toCollection(targetSupplier)));
+    }
+
+    private static <T> Supplier<Collection<T>> supplierOf(Class<Collection<T>> collectionClass) {
+        return () -> {
+            try {
+                return (Collection<T>) collectionClass.getDeclaredConstructor().newInstance();
+            } catch (Exception e) {
+                throw new InterpretationException(
+                        "Unable to instantiate collection of type %s".formatted(collectionClass)
+                );
+            }
+        };
     }
 }

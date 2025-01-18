@@ -2,7 +2,9 @@ package com.codepoetics.mariko;
 
 import com.codepoetics.mariko.api.Interpreter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -25,10 +27,13 @@ class InterpreterCache {
         return interpreterCache;
     }
 
-    private sealed interface InterpreterKey {
+    private sealed interface InterpreterKey permits
+            InterpreterKey.ClassIdentifier,
+            InterpreterKey.CollectionClassIdentifier
+    {
         Class<?> targetClass();
-        record ClassIdentifier(Class<?> targetClass) implements InterpreterKey { }
-        record ClassAndPatternIdentifier(Class<?> targetClass, String pattern) implements InterpreterKey { }
+        record ClassIdentifier(@NotNull Class<?> targetClass, @Nullable String pattern) implements InterpreterKey { }
+        record CollectionClassIdentifier(@NotNull Class<?> collectionClass, @NotNull Class<?> targetClass, String separator, @Nullable String pattern) implements InterpreterKey { }
     }
 
     private static final class DeferredInterpreter<T> implements Interpreter<T> {
@@ -55,15 +60,23 @@ class InterpreterCache {
     private final ThreadLocal<Set<InterpreterKey>> underConstruction = ThreadLocal.withInitial(HashSet::new);
 
     public <T> void put(Class<T> targetClass, Interpreter<T> interpreter) {
-        cachedInterpreters.put(new InterpreterKey.ClassIdentifier(targetClass), interpreter);
+        cachedInterpreters.put(new InterpreterKey.ClassIdentifier(targetClass, null), interpreter);
     }
 
     public <T> Interpreter<T> getOrPut(Class<T> targetClass, Supplier<Interpreter<T>> builder) {
-        return getOrPut(new InterpreterKey.ClassIdentifier(targetClass), builder);
+        return getOrPut(new InterpreterKey.ClassIdentifier(targetClass, null), builder);
     }
 
     public <T> Interpreter<T> getOrPut(Class<T> targetClass, String pattern, Supplier<Interpreter<T>> builder) {
-        return getOrPut(new InterpreterKey.ClassAndPatternIdentifier(targetClass, pattern), builder);
+        return getOrPut(new InterpreterKey.ClassIdentifier(targetClass, pattern), builder);
+    }
+
+    public <T, C extends Collection<T>> Interpreter<C> getOrPut(Class<?> collectionClass, Class<T> targetClass, String separator, Supplier<Interpreter<C>> builder) {
+        return getOrPut(new InterpreterKey.CollectionClassIdentifier(collectionClass, targetClass, separator,null), builder);
+    }
+
+    public <T, C extends Collection<T>> Interpreter<C> getOrPut(Class<?> collectionClass, Class<T> targetClass, String separator, String pattern, Supplier<Interpreter<C>> builder) {
+        return getOrPut(new InterpreterKey.CollectionClassIdentifier(collectionClass, targetClass, separator, pattern), builder);
     }
 
     @SuppressWarnings("unchecked")
