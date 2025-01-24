@@ -18,10 +18,14 @@ class InterpreterCache {
     public static InterpreterCache withPrimitives() {
         InterpreterCache interpreterCache = new InterpreterCache();
 
+        interpreterCache.put(byte.class, s -> Optional.of(Byte.parseByte(s)));
         interpreterCache.put(int.class, s -> Optional.of(Integer.parseInt(s)));
         interpreterCache.put(long.class, s -> Optional.of(Long.parseLong(s)));
+        interpreterCache.put(short.class, s -> Optional.of(Short.parseShort(s)));
         interpreterCache.put(boolean.class, s -> Optional.of(Boolean.parseBoolean(s)));
         interpreterCache.put(char.class, s -> Optional.of(s.toCharArray()[0]));
+        interpreterCache.put(double.class, s -> Optional.of(Double.parseDouble(s)));
+        interpreterCache.put(float.class, s -> Optional.of(Float.parseFloat(s)));
         interpreterCache.put(String.class, Optional::ofNullable);
 
         return interpreterCache;
@@ -69,10 +73,6 @@ class InterpreterCache {
 
     public <T> Interpreter<T> getOrPut(Class<T> targetClass, String pattern, Supplier<Interpreter<T>> builder) {
         return getOrPut(new InterpreterKey.ClassIdentifier(targetClass, pattern), builder);
-    }
-
-    public <T, C extends Collection<T>> Interpreter<C> getOrPut(Class<?> collectionClass, Class<T> targetClass, String separator, Supplier<Interpreter<C>> builder) {
-        return getOrPut(new InterpreterKey.CollectionClassIdentifier(collectionClass, targetClass, separator,null), builder);
     }
 
     public <T, C extends Collection<T>> Interpreter<C> getOrPut(Class<?> collectionClass, Class<T> targetClass, String separator, String pattern, Supplier<Interpreter<C>> builder) {

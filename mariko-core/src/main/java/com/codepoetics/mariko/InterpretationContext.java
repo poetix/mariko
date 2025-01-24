@@ -8,7 +8,7 @@ import com.codepoetics.mariko.reflection.ParameterInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.*;
+import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -88,17 +88,11 @@ public final class InterpretationContext {
     }
 
     private @NotNull Interpreter<?> makeCollectionParameterInterpreter(@NotNull ParameterInfo.CollectionParameter parameter) {
-        return parameter.annotatedPattern() != null
-            ? interpreterCache.getOrPut(
+        return interpreterCache.getOrPut(
                 parameter.collectionClass(),
                 parameter.itemClass(),
                 parameter.separator(),
                 parameter.annotatedPattern(),
-                () -> makeCollectionParameterInterpreterUncached(parameter))
-            : interpreterCache.getOrPut(
-                parameter.collectionClass(),
-                parameter.itemClass(),
-                parameter.separator(),
                 () -> makeCollectionParameterInterpreterUncached(parameter));
     }
 

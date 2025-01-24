@@ -1,5 +1,6 @@
 plugins {
-    id("java")
+    java
+    `maven-publish`
 }
 
 group = "com.codepoetics"
@@ -24,4 +25,16 @@ tasks.test {
 java {
     targetCompatibility = JavaVersion.VERSION_17
     sourceCompatibility = JavaVersion.VERSION_17
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            groupId = "com.codepoetics"
+            artifactId = "mariko-core"
+            version = "1.0-SNAPSHOT"
+
+            from(components["java"])
+        }
+    }
 }

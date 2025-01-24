@@ -126,10 +126,11 @@ public record InstanceBuilderInfo<T>(Pattern pattern, List<ParameterInfo> parame
 
     private static @NotNull ParameterInfo interpretListParameter(@NotNull Parameter parameter) {
         var listType = (ParameterizedType) parameter.getParameterizedType();
-        var itemClass = (Class<?>) listType.getActualTypeArguments()[0];
+        var itemClass = resolve(listType.getActualTypeArguments()[0]);
+
         var separator = parameter.isAnnotationPresent(FromList.class)
                 ? parameter.getAnnotation(FromList.class).value()
-                : ",\\s+";
+                : ",\\s*";
 
         return new ParameterInfo.CollectionParameter(
                 parameter.getName(),
@@ -139,6 +140,24 @@ public record InstanceBuilderInfo<T>(Pattern pattern, List<ParameterInfo> parame
                 parameter.isAnnotationPresent(FromPattern.class)
                         ? parameter.getAnnotation(FromPattern.class).value()
                         : null);
+    }
+
+    private static Class<?> resolve(Type typeArgument) {
+        if (typeArgument instanceof Class<?>) return toPrimitive((Class<?>) typeArgument);
+        if (typeArgument instanceof WildcardType) return resolve(((WildcardType) typeArgument).getUpperBounds()[0]);
+        throw new UnsupportedOperationException("Unable to resolve type %s".formatted(typeArgument));
+    }
+
+    private static  Class<?> toPrimitive(Class<?> maybeBoxed) {
+        if (maybeBoxed == Integer.class) return int.class;
+        if (maybeBoxed == Long.class) return long.class;
+        if (maybeBoxed == Short.class) return short.class;
+        if (maybeBoxed == Boolean.class) return boolean.class;
+        if (maybeBoxed == Character.class) return char.class;
+        if (maybeBoxed == Byte.class) return byte.class;
+        if (maybeBoxed == Float.class) return float.class;
+        if (maybeBoxed == Double.class) return double.class;
+        return maybeBoxed;
     }
 
     private static <T> void addStaticBuilders(@NotNull Class<T> targetClass, List<InstanceBuilderInfo<T>> result) {
